@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Actions\Tasks\AskAiAction;
 use App\Actions\Tasks\GenerateSubtasksAction;
 use App\Enums\TaskStatusEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\TaskRequest;
 use App\Models\Task;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class TaskPageController extends Controller
@@ -45,6 +47,11 @@ class TaskPageController extends Controller
 
     public function show(Task $task): View
     {
+        $task->load([
+            'aiMessages' => fn ($query) => $query->latest()->limit(5),
+        ]);
+
+
         return view('tasks.show', compact('task'));
     }
 
@@ -91,5 +98,24 @@ class TaskPageController extends Controller
             'generatedSubtasks' => $result->subtasks,
             'rawResponse' => $result->rawResponse,
         ]);
+    }
+
+    public function askAi(
+        Task $task,
+        Request $request,
+        AskAiAction $askAiAction
+    ): RedirectResponse {
+        $validated = $request->validate([
+            'question' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $askAiAction->handle(
+            task: $task,
+            question: $validated['question']
+        );
+
+        return redirect()
+            ->route('tasks.show', $task->id)
+            ->with('ai_success', 'AI-відповідь успішно згенеровано.');
     }
 }

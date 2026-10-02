@@ -12,4 +12,9 @@ class Task extends Model
         'status',
         'due_date'
     ];
+
+    public function aiMessages()
+    {
+        return $this->hasMany(AiMessage::class);
+    }
 }
